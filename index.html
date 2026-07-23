@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Savituh - Smart Breathing & BOLT Assessment Tool</title>
+    
+    <!-- Open Graph / Link Preview Metadata -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Savituh - Smart Breathing & BOLT Assessment Tool">
+    <meta property="og:description" content="Test your functional breathing, CO2 tolerance, and optimize nervous system balance with guided bio-haptic rhythms.">
+    <meta property="og:image" content="https://placehold.co/1200x630/050507/FF5500?text=SAVITUH+Smart+Breathing">
+    
+    <!-- iOS / PWA Mobile Web App Capability -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#050507">
+    
+    <!-- Inline SVG Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23050507%22 stroke=%22%23FF5500%22 stroke-width=%228%22/><circle cx=%2250%22 cy=%2250%22 r=%2220%22 fill=%22%23FF5500%22/></svg>">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        savituhBlack: '#050507',
+                        savituhDark: '#0e0e13',
+                        savituhCard: '#15151e',
+                        savituhOrange: '#FF5500',
+                        savituhOrangeGlow: '#FF7722',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & ReactDOM CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel Standalone for JSX compilation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #050507;
+            color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .glow-orange {
+            box-shadow: 0 0 20px rgba(255, 85, 0, 0.35), 0 0 40px rgba(255, 85, 0, 0.15);
+        }
+
+        .glow-white {
+            filter: drop-shadow(0px 0px 3px rgba(226, 232, 240, 0.35));
+        }
+
+        .glow-rainbow {
+            filter: drop-shadow(0px 0px 6px currentColor);
+        }
+
+        @keyframes subtlePulse {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.03); opacity: 1; }
+        }
+
+        .animate-subtle-pulse {
+            animation: subtlePulse 2s ease-in-out infinite;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0e0e13;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #22222f;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-savituhBlack text-white min-h-screen flex flex-col justify-between selection:bg-orange-500 selection:text-white">
+
+    <div id="root" class="min-h-screen flex flex-col justify-between max-w-md mx-auto px-4 py-4"></div>
+
+    <script type="text/babel">
+        class AudioHapticEngine {
+            constructor() {
+                this.ctx = null;
+                this.isInitialized = false;
+                this.pinkNoiseBuffer = null;
+                this.currentSource = null;
+                this.currentGain = null;
+            }
+
+            init() {
+                if (!this.isInitialized) {
+                    try {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        this.ctx = new AudioContext();
+                        this.isInitialized = true;
+                        this.pinkNoiseBuffer = this.createPinkNoiseBuffer();
+                    } catch (e) {
+                        console.warn("Web Audio API not supported", e);
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            createPinkNoiseBuffer() {
+                if (!this.ctx) return null;
+                const bufferSize = this.ctx.sampleRate * 2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = buffer.getChannelData(0);
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                    output[i] *= 0.11;
+                    b6 = white * 0.115926;
+                }
+                return buffer;
+            }
+
+            triggerHaptic(intensity = 'medium') {
+                if (navigator.vibrate) {
+                    if (intensity === 'click') navigator.vibrate(12);
+                    else if (intensity === 'phase') navigator.vibrate([25, 40, 25]);
+                    else navigator.vibrate(18);
+                }
+            }
+
+            stopCurrentAudio() {
+                if (this.currentSource) {
+                    try {
+                        this.currentSource.stop();
+                        this.currentSource.disconnect();
+                    } catch (e) {}
+                    this.currentSource = null;
+                }
+            }
+
+            startPhaseAudio(templateType, phase, durationSec, isDeep = false) {
+                this.init();
+                if (!this.ctx || phase === 'HOLD') {
+                    this.stopCurrentAudio();
+                    return;
+                }
+                this.stopCurrentAudio();
+
+                const now = this.ctx.currentTime;
+                const dur = Math.max(0.1, durationSec);
+
+                try {
+                    const bufferSource = this.ctx.createBufferSource();
+                    bufferSource.buffer = this.pinkNoiseBuffer || this.createPinkNoiseBuffer();
+                    bufferSource.loop = true;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    const gain = this.ctx.createGain();
+
+                    let startFreq = 250;
+                    let endFreq = 800;
+                    let peakVol = 0.12;
+
+                    if (templateType === 'RECHARGE') {
+                        filter.type = 'lowpass';
+                        if (isDeep) {
+                            if (phase === 'INHALE') { startFreq = 180; endFreq = 650; peakVol = 0.18; }
+                            else if (phase === 'EXHALE') { startFreq = 650; endFreq = 180; peakVol = 0.18; }
+                        } else if (phase === 'INHALE') { startFreq = 350; endFreq = 1200; peakVol = 0.22; }
+                        else if (phase === 'EXHALE') { startFreq = 1200; endFreq = 350; peakVol = 0.22; }
+                        else { startFreq = 180; endFreq = 200; peakVol = 0.03; }
+                    } else if (templateType === 'BALANCE') {
+                        filter.type = 'lowpass';
+                        if (phase === 'INHALE') { startFreq = 220; endFreq = 550; peakVol = 0.12; }
+                        else { startFreq = 550; endFreq = 220; peakVol = 0.12; }
+                    } else if (templateType === 'RECOVERY') {
+                        if (phase === 'INHALE') {
+                            // Balloon Fill Simulation:
+                            // Air expanding into stretched rubber with increasing resonance & pitch curve
+                            filter.type = 'bandpass';
+                            filter.Q.setValueAtTime(2.5, now);
+                            filter.Q.exponentialRampToValueAtTime(6.0, now + dur);
+                            startFreq = 160; 
+                            endFreq = 580; 
+                            peakVol = 0.16;
+
+                            // Rubber tension harmonic resonance oscillator
+                            try {
+                                const tensionOsc = this.ctx.createOscillator();
+                                const oscGain = this.ctx.createGain();
+                                tensionOsc.type = 'sine';
+                                tensionOsc.frequency.setValueAtTime(110, now);
+                                tensionOsc.frequency.exponentialRampToValueAtTime(280, now + dur);
+                                
+                                oscGain.gain.setValueAtTime(0.001, now);
+                                oscGain.gain.linearRampToValueAtTime(0.035, now + dur * 0.4);
+                                oscGain.gain.linearRampToValueAtTime(0.001, now + dur);
+
+                                tensionOsc.connect(oscGain);
+                                oscGain.connect(this.ctx.destination);
+                                tensionOsc.start(now);
+                                tensionOsc.stop(now + dur);
+                            } catch(e) {}
+                        } else if (phase === 'EXHALE') {
+                            // Straw Exhale Simulation:
+                            // Restricted airflow through a narrow aperture (high-Q resonant whistling air friction)
+                            filter.type = 'bandpass';
+                            filter.Q.setValueAtTime(12.0, now); // Sharp narrow aperture filter
+                            filter.Q.linearRampToValueAtTime(8.5, now + dur);
+                            
+                            startFreq = 1250; 
+                            endFreq = 780; 
+                            peakVol = 0.14;
+
+                            // High-frequency aperture air turbulence layer
+                            try {
+                                const frictionFilter = this.ctx.createBiquadFilter();
+                                const frictionGain = this.ctx.createGain();
+                                frictionFilter.type = 'highpass';
+                                frictionFilter.frequency.setValueAtTime(2200, now);
+
+                                frictionGain.gain.setValueAtTime(0.001, now);
+                                frictionGain.gain.linearRampToValueAtTime(0.025, now + dur * 0.2);
+                                frictionGain.gain.linearRampToValueAtTime(0.001, now + dur);
+
+                                bufferSource.connect(frictionFilter);
+                                frictionFilter.connect(frictionGain);
+                                frictionGain.connect(this.ctx.destination);
+                            } catch(e) {}
+                        }
+                    }
+
+                    filter.frequency.setValueAtTime(startFreq, now);
+                    filter.frequency.exponentialRampToValueAtTime(Math.max(100, endFreq), now + dur);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(peakVol, now + dur * 0.35);
+                    gain.gain.linearRampToValueAtTime(0.001, now + dur);
+
+                    bufferSource.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    bufferSource.start(now);
+                    bufferSource.stop(now + dur);
+
+                    this.currentSource = bufferSource;
+                    this.currentGain = gain;
+                } catch (e) {
+                    console.warn("Audio play error", e);
+                }
+            }
+        }
+
+        const audioEngine = new AudioHapticEngine();
+
+        const RAINBOW_COLORS = [
+            { day: 'Mon', name: 'Red', hex: '#FF3B30' },
+            { day: 'Tue', name: 'Orange', hex: '#FF9500' },
+            { day: 'Wed', name: 'Yellow', hex: '#FFCC00' },
+            { day: 'Thu', name: 'Green', hex: '#34C759' },
+            { day: 'Fri', name: 'Blue', hex: '#007AFF' },
+            { day: 'Sat', name: 'Indigo', hex: '#5856D6' },
+            { day: 'Sun', name: 'Violet', hex: '#AF52DE' },
+        ];
+
+        function SavituhDeviceSim({ 
+            sessionState, 
+            boltState, 
+            boltScore, 
+            completedPractices, 
+            rainbowProgress, 
+            onHapticClick 
+        }) {
+            const svgSize = 340;
+            const center = svgSize / 2;
+            
+            const rRainbow = 150;
+            const rOuter = 120;   // Exhale (Outer)
+            const rMiddle = 95;   // Hold (Middle)
+            const rInner = 70;    // Inhale (Inner)
+            const rButton = 45;   // Central Haptic Tap
+
+            let fillInner = 0;
+            let fillMiddle = 0;
+            let fillOuter = 0;
+
+            if (completedPractices.RECHARGE) fillInner = 1;
+            if (completedPractices.BALANCE) fillMiddle = 1;
+            if (completedPractices.RECOVERY) fillOuter = 1;
+
+            if (sessionState.isExecuting) {
+                if (sessionState.phase === 'STILLNESS') {
+                    fillInner = 1; fillMiddle = 1; fillOuter = 1;
+                } else if (sessionState.phase === 'INHALE') {
+                    fillInner = sessionState.phaseProgress; fillMiddle = 0; fillOuter = 0;
+                } else if (sessionState.phase === 'HOLD') {
+                    fillInner = 1; fillMiddle = sessionState.phaseProgress; fillOuter = 0;
+                } else if (sessionState.phase === 'EXHALE') {
+                    fillInner = 1; fillMiddle = sessionState.hasMiddleRing ? 1 : 0; fillOuter = sessionState.phaseProgress;
+                }
+            }
+
+            let boltColor = 'rgba(226, 232, 240, 0.85)';
+            if (boltState === 'COMPLETE' && boltScore) {
+                if (boltScore.category === 'Poor') { fillInner = 1; boltColor = '#FF3B30'; }
+                else if (boltScore.category === 'Average') { fillMiddle = 1; boltColor = '#FF9500'; }
+                else if (boltScore.category === 'Good') { fillOuter = 1; boltColor = '#34C759'; }
+                else if (boltScore.category === 'Elite') { fillInner = 1; fillMiddle = 1; fillOuter = 1; boltColor = '#FFCC00'; }
+            }
+
+            const createArc = (radius, progress, strokeWidth = 4.5, color = "rgba(226, 232, 240, 0.85)") => {
+                const circumference = 2 * Math.PI * radius;
+                const clampedProgress = Math.min(1, Math.max(0, progress));
+                const strokeDashoffset = circumference * (1 - clampedProgress);
+                return (
+                    <circle
+                        cx={center}
+                        cy={center}
+                        r={radius}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        transform={`rotate(-90 ${center} ${center})`}
+                        className="glow-white"
+                    />
+                );
+            };
+
+            return (
+                <div className="relative flex flex-col items-center justify-center my-2">
+                    <div className="relative w-[340px] h-[340px] flex items-center justify-center">
+                        <svg width={svgSize} height={svgSize} className="drop-shadow-2xl">
+                            <circle cx={center} cy={center} r={165} fill="#0a0a0f" stroke="#22222f" strokeWidth="3" />
+
+                            {RAINBOW_COLORS.map((item, index) => {
+                                const segmentAngle = 360 / 7;
+                                const gap = 3;
+                                const startAngle = index * segmentAngle + gap / 2;
+                                const endAngle = (index + 1) * segmentAngle - gap / 2;
+
+                                const startRad = ((startAngle - 90) * Math.PI) / 180;
+                                const endRad = ((endAngle - 90) * Math.PI) / 180;
+
+                                const x1 = center + rRainbow * Math.cos(startRad);
+                                const y1 = center + rRainbow * Math.sin(startRad);
+                                const x2 = center + rRainbow * Math.cos(endRad);
+                                const y2 = center + rRainbow * Math.sin(endRad);
+
+                                const isLit = index < rainbowProgress;
+
+                                return (
+                                    <path
+                                        key={item.day}
+                                        d={`M ${x1} ${y1} A ${rRainbow} ${rRainbow} 0 0 1 ${x2} ${y2}`}
+                                        fill="none"
+                                        stroke={isLit ? item.hex : '#1c1c24'}
+                                        strokeWidth="10"
+                                        strokeLinecap="round"
+                                        className={`transition-all duration-500 ${isLit ? 'glow-rainbow' : ''}`}
+                                        style={{ color: item.hex }}
+                                    />
+                                );
+                            })}
+
+                            <circle cx={center} cy={center} r={rOuter} fill="none" stroke="#1f1f2a" strokeWidth="3.5" />
+                            <circle cx={center} cy={center} r={rMiddle} fill="none" stroke="#1f1f2a" strokeWidth="3.5" />
+                            <circle cx={center} cy={center} r={rInner} fill="none" stroke="#1f1f2a" strokeWidth="3.5" />
+
+                            {createArc(rInner, fillInner, 4.5, boltState === 'COMPLETE' ? boltColor : 'rgba(226, 232, 240, 0.85)')}
+                            {createArc(rMiddle, fillMiddle, 4.5, boltState === 'COMPLETE' ? boltColor : 'rgba(226, 232, 240, 0.85)')}
+                            {createArc(rOuter, fillOuter, 4.5, boltState === 'COMPLETE' ? boltColor : 'rgba(226, 232, 240, 0.85)')}
+                        </svg>
+
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <button
+                                onClick={onHapticClick}
+                                style={{ width: `${rButton * 2}px`, height: `${rButton * 2}px` }}
+                                className={`rounded-full bg-gradient-to-br from-amber-500 via-savituhOrange to-red-600 text-white flex items-center justify-center font-bold shadow-2xl transform transition-all duration-150 active:scale-95 hover:scale-105 border-2 border-orange-300/40 glow-orange cursor-pointer z-10 ${
+                                    sessionState.isExecuting ? 'animate-subtle-pulse' : ''
+                                }`}
+                                title="Savituh Central Haptic Button"
+                            >
+                                <div className="w-14 h-14 rounded-full stroke-none border border-white/30 flex flex-col items-center justify-center bg-black/25 backdrop-blur-sm">
+                                    {boltState === 'COUNTING' ? (
+                                        <span className="font-mono text-sm font-black text-white">{boltScore ? boltScore.time : '0'}s</span>
+                                    ) : sessionState.isExecuting ? (
+                                        <div className="text-center">
+                                            <span className="font-mono text-base font-black text-white tracking-tight">
+                                                {sessionState.timeRemaining}s
+                                            </span>
+                                            <span className="block text-[8px] uppercase tracking-wider text-orange-200 font-bold">
+                                                {sessionState.phase}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="font-sans font-black text-xs text-white tracking-widest drop-shadow">
+                                            TAP
+                                        </span>
+                                    )}
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-2 text-center">
+                        <div className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase flex items-center justify-center gap-1.5">
+                            <span>SAVITUH HARDWARE SIMULATOR</span>
+                        </div>
+                        {sessionState.isExecuting && (
+                            <div className="text-xs font-semibold text-orange-400 font-mono mt-0.5 animate-pulse">
+                                {sessionState.phaseName} • {sessionState.timeRemaining}s left
+                            </div>
+                        )}
+                        {boltState === 'COUNTING' && (
+                            <div className="text-xs text-amber-400 font-mono mt-0.5 animate-pulse">
+                                Measuring BOLT Hold... Tap Button To Stop
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Ring Purpose Quick Legend */}
+                    <div className="mt-2 bg-neutral-900/90 border border-neutral-800 rounded-xl p-2.5 text-[10px] grid grid-cols-2 gap-2 text-neutral-300">
+                        <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-red-500 via-green-500 to-purple-500 shrink-0 glow-rainbow"></span>
+                            <div>
+                                <span className="font-bold text-white block">Outer Rainbow</span>
+                                <span className="text-neutral-400 text-[9px]">7-Day Habit Streak ({rainbowProgress}/7 Days)</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full border-2 border-slate-200 shrink-0"></span>
+                            <div>
+                                <span className="font-bold text-white block">3 Daily Rings</span>
+                                <span className="text-neutral-400 text-[9px]">Inner: Recharge • Mid: Balance • Outer: Recovery</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [activePractice, setActivePractice] = React.useState('RECHARGE');
+            const [durationMinutes, setDurationMinutes] = React.useState(1);
+            const [soundEnabled, setSoundEnabled] = React.useState(true);
+            const [hapticEnabled, setHapticEnabled] = React.useState(true);
+            const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
+            const [showGuideModal, setShowGuideModal] = React.useState(false);
+            const [guideTab, setGuideTab] = React.useState('rings'); // 'concept' | 'rings' | 'streak' | 'bolt'
+            const [activeModalTab, setActiveModalTab] = React.useState('github'); // 'github' | 'feedback' | 'share'
+            const [copySuccess, setCopySuccess] = React.useState(false);
+            const [feedbackText, setFeedbackText] = React.useState('');
+            const [feedbackSubmitted, setFeedbackSubmitted] = React.useState(false);
+
+            // GitHub Integration States
+            const [githubRepo, setGithubRepo] = React.useState(() => {
+                try {
+                    return localStorage.getItem('savituh_github_repo') || 'savituh/savituh-breathing-app';
+                } catch(e) { return 'savituh/savituh-breathing-app'; }
+            });
+            const [githubToken, setGithubToken] = React.useState(() => {
+                try { return localStorage.getItem('savituh_github_token') || ''; } catch(e) { return ''; }
+            });
+            const [issueType, setIssueType] = React.useState('bug');
+            const [issueTitle, setIssueTitle] = React.useState('');
+            const [issueBody, setIssueBody] = React.useState('');
+            const [includeDiagnostics, setIncludeDiagnostics] = React.useState(true);
+            const [isSubmittingGithub, setIsSubmittingGithub] = React.useState(false);
+            const [githubStatus, setGithubStatus] = React.useState(null);
+
+            const [feedbackLog, setFeedbackLog] = React.useState(() => {
+                try {
+                    const saved = localStorage.getItem('savituh_feedback_log');
+                    return saved ? JSON.parse(saved) : [];
+                } catch(e) {
+                    return [];
+                }
+            });
+
+            const [sessionState, setSessionState] = React.useState({
+                isExecuting: false,
+                timeRemaining: 60,
+                phase: 'IDLE',
+                phaseName: '',
+                phaseProgress: 0,
+                hasMiddleRing: false,
+            });
+
+            const [boltState, setBoltState] = React.useState('IDLE');
+            const [boltScore, setBoltScore] = React.useState(null);
+
+            const [completedPractices, setCompletedPractices] = React.useState(() => {
+                try {
+                    const saved = localStorage.getItem('savituh_completed_practices');
+                    return saved ? JSON.parse(saved) : { RECHARGE: false, BALANCE: false, RECOVERY: false };
+                } catch(e) {
+                    return { RECHARGE: false, BALANCE: false, RECOVERY: false };
+                }
+            });
+
+            const [rainbowProgress, setRainbowProgress] = React.useState(() => {
+                try {
+                    const saved = localStorage.getItem('savituh_rainbow_progress');
+                    return saved ? parseInt(saved, 10) : 1;
+                } catch(e) {
+                    return 1;
+                }
+            });
+
+            const [boltHistory, setBoltHistory] = React.useState(() => {
+                try {
+                    const saved = localStorage.getItem('savituh_bolt_history');
+                    return saved ? JSON.parse(saved) : [];
+                } catch(e) {
+                    return [];
+                }
+            });
+
+            const [unlockedReward, setUnlockedReward] = React.useState(false);
+
+            React.useEffect(() => {
+                try {
+                    localStorage.setItem('savituh_completed_practices', JSON.stringify(completedPractices));
+                    localStorage.setItem('savituh_rainbow_progress', rainbowProgress.toString());
+                    localStorage.setItem('savituh_bolt_history', JSON.stringify(boltHistory));
+                    localStorage.setItem('savituh_feedback_log', JSON.stringify(feedbackLog));
+                    localStorage.setItem('savituh_github_repo', githubRepo);
+                    localStorage.setItem('savituh_github_token', githubToken);
+                } catch(e) {}
+            }, [completedPractices, rainbowProgress, boltHistory, feedbackLog, githubRepo, githubToken]);
+
+            const currentPhaseRef = React.useRef({ phaseKey: 'IDLE', practice: '' });
+
+            React.useEffect(() => {
+                let animationFrameId = null;
+                let startTime = null;
+
+                if (sessionState.isExecuting) {
+                    const totalDurationSec = durationMinutes * 60;
+                    startTime = performance.now();
+
+                    const loop = (now) => {
+                        const elapsedMs = now - startTime;
+                        const elapsedSec = elapsedMs / 1000;
+                        const remainingSec = Math.max(0, Math.ceil(totalDurationSec - elapsedSec));
+
+                        if (elapsedSec >= totalDurationSec) {
+                            audioEngine.stopCurrentAudio();
+                            completeSession();
+                            setSessionState({
+                                isExecuting: false,
+                                timeRemaining: 0,
+                                phase: 'IDLE',
+                                phaseName: 'Completed!',
+                                phaseProgress: 1,
+                                hasMiddleRing: false,
+                            });
+                            return;
+                        }
+
+                        let phase = 'INHALE';
+                        let phaseName = 'Inhale';
+                        let phaseProgress = 0;
+                        let phaseDurationSec = 1.5;
+                        let hasMiddleRing = false;
+                        let isDeepBreath = false;
+
+                        if (activePractice === 'RECHARGE') {
+                            const minuteCycle = elapsedSec % 60.0;
+                            if (minuteCycle < 6.0) {
+                                const subTime = minuteCycle % 2.0;
+                                const breathNum = Math.floor(minuteCycle / 2.0) + 1;
+                                isDeepBreath = true;
+                                if (subTime < 1.0) {
+                                    phase = 'INHALE';
+                                    phaseName = `Deep Inhale (${breathNum}/3)`;
+                                    phaseProgress = subTime / 1.0;
+                                    phaseDurationSec = 1.0;
+                                } else {
+                                    phase = 'EXHALE';
+                                    phaseName = `Deep Exhale (${breathNum}/3)`;
+                                    phaseProgress = (subTime - 1.0) / 1.0;
+                                    phaseDurationSec = 1.0;
+                                }
+                            } else if (minuteCycle < 26.0) {
+                                const subTime = (minuteCycle - 6.0) % 1.0;
+                                const breathNum = Math.floor(minuteCycle - 6.0) + 1;
+                                isDeepBreath = false;
+                                if (subTime < 0.5) {
+                                    phase = 'INHALE';
+                                    phaseName = `Forceful Inhale (${breathNum}/20)`;
+                                    phaseProgress = subTime / 0.5;
+                                    phaseDurationSec = 0.5;
+                                } else {
+                                    phase = 'EXHALE';
+                                    phaseName = `Forceful Exhale (${breathNum}/20)`;
+                                    phaseProgress = (subTime - 0.5) / 0.5;
+                                    phaseDurationSec = 0.5;
+                                }
+                            } else {
+                                phase = 'STILLNESS';
+                                phaseName = 'Quiet Stillness — Notice Body Changes';
+                                phaseProgress = (minuteCycle - 26.0) / 34.0;
+                                phaseDurationSec = 34.0;
+                            }
+                        } else if (activePractice === 'BALANCE') {
+                            hasMiddleRing = true;
+                            const cycleTime = elapsedSec % 16.0;
+                            if (cycleTime < 4.0) {
+                                phase = 'INHALE';
+                                phaseName = 'Inhale (4s)';
+                                phaseProgress = cycleTime / 4.0;
+                                phaseDurationSec = 4.0;
+                            } else if (cycleTime < 8.0) {
+                                phase = 'HOLD';
+                                phaseName = 'Hold (4s)';
+                                phaseProgress = (cycleTime - 4.0) / 4.0;
+                                phaseDurationSec = 4.0;
+                            } else if (cycleTime < 12.0) {
+                                phase = 'EXHALE';
+                                phaseName = 'Exhale (4s)';
+                                phaseProgress = (cycleTime - 8.0) / 4.0;
+                                phaseDurationSec = 4.0;
+                            } else {
+                                phase = 'HOLD';
+                                phaseName = 'Hold (4s)';
+                                phaseProgress = (cycleTime - 12.0) / 4.0;
+                                phaseDurationSec = 4.0;
+                            }
+                        } else if (activePractice === 'RECOVERY') {
+                            const cycleTime = elapsedSec % 12.0;
+                            if (cycleTime < 4.0) {
+                                phase = 'INHALE';
+                                phaseName = 'Deep Inhale (4s)';
+                                phaseProgress = cycleTime / 4.0;
+                                phaseDurationSec = 4.0;
+                            } else {
+                                phase = 'EXHALE';
+                                phaseName = 'Slow Straw Exhale (8s)';
+                                phaseProgress = (cycleTime - 4.0) / 8.0;
+                                phaseDurationSec = 8.0;
+                            }
+                        }
+
+                        const phaseKey = `${phase}-${isDeepBreath ? 'DEEP' : 'REG'}`;
+                        if (currentPhaseRef.current.phaseKey !== phaseKey || currentPhaseRef.current.practice !== activePractice) {
+                            currentPhaseRef.current = { phaseKey, practice: activePractice };
+                            if (soundEnabled) {
+                                audioEngine.startPhaseAudio(activePractice, phase, phaseDurationSec, isDeepBreath);
+                            } else {
+                                audioEngine.stopCurrentAudio();
+                            }
+                            if (hapticEnabled) {
+                                audioEngine.triggerHaptic(isDeepBreath ? 'phase' : 'click');
+                            }
+                        }
+
+                        setSessionState({
+                            isExecuting: true,
+                            timeRemaining: remainingSec,
+                            phase,
+                            phaseName,
+                            phaseProgress,
+                            hasMiddleRing,
+                        });
+
+                        animationFrameId = requestAnimationFrame(loop);
+                    };
+
+                    animationFrameId = requestAnimationFrame(loop);
+                } else {
+                    audioEngine.stopCurrentAudio();
+                    currentPhaseRef.current = { phaseKey: 'IDLE', practice: '' };
+                }
+
+                return () => {
+                    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                };
+            }, [sessionState.isExecuting, activePractice, durationMinutes, soundEnabled, hapticEnabled]);
+
+            React.useEffect(() => {
+                let boltTimer = null;
+                if (boltState === 'COUNTING') {
+                    boltTimer = setInterval(() => {
+                        setBoltScore((prev) => ({
+                            time: (prev ? prev.time : 0) + 1,
+                            category: '',
+                        }));
+                    }, 1000);
+                }
+                return () => clearInterval(boltTimer);
+            }, [boltState]);
+
+            const completeSession = () => {
+                setCompletedPractices((prev) => {
+                    const updated = { ...prev, [activePractice]: true };
+                    if (updated.RECHARGE && updated.BALANCE && updated.RECOVERY) {
+                        setRainbowProgress((rainbow) => {
+                            const newRainbow = Math.min(7, rainbow + 1);
+                            if (newRainbow === 7) setUnlockedReward(true);
+                            return newRainbow;
+                        });
+                    }
+                    return updated;
+                });
+                audioEngine.triggerHaptic('phase');
+            };
+
+            const handleHapticButtonClick = () => {
+                audioEngine.init();
+                audioEngine.triggerHaptic('click');
+
+                if (activePractice === 'BOLT') {
+                    if (boltState === 'IDLE') {
+                        setBoltState('COUNTING');
+                        setBoltScore({ time: 0, category: 'Measuring...' });
+                    } else if (boltState === 'COUNTING') {
+                        const finalTime = boltScore ? boltScore.time : 0;
+                        let cat = 'Poor';
+                        if (finalTime >= 40) cat = 'Elite';
+                        else if (finalTime >= 20) cat = 'Good';
+                        else if (finalTime >= 10) cat = 'Average';
+
+                        const resultObj = { time: finalTime, category: cat, date: new Date().toLocaleDateString() };
+                        setBoltScore(resultObj);
+                        setBoltState('COMPLETE');
+                        setBoltHistory((prev) => [resultObj, ...prev.slice(0, 9)]);
+                    } else {
+                        setBoltState('IDLE');
+                        setBoltScore(null);
+                    }
+                    return;
+                }
+
+                if (sessionState.isExecuting) {
+                    audioEngine.stopCurrentAudio();
+                    setSessionState({
+                        isExecuting: false,
+                        timeRemaining: durationMinutes * 60,
+                        phase: 'IDLE',
+                        phaseName: '',
+                        phaseProgress: 0,
+                        hasMiddleRing: false,
+                    });
+                } else {
+                    setSessionState({
+                        isExecuting: true,
+                        timeRemaining: durationMinutes * 60,
+                        phase: 'INHALE',
+                        phaseName: 'Inhale',
+                        phaseProgress: 0,
+                        hasMiddleRing: false,
+                    });
+                }
+            };
+
+            const getDiagnosticMarkdown = () => {
+                const latestBolt = boltHistory[0] ? `${boltHistory[0].time}s (${boltHistory[0].category})` : 'N/A';
+                return `\n\n---
+### 🛠️ System & Session Diagnostics
+- **Active Mode:** \`${activePractice}\`
+- **Timer Selected:** \`${durationMinutes} min\`
+- **Latest BOLT Score:** \`${latestBolt}\`
+- **Completed Daily Practices:** \`RECHARGE: ${completedPractices.RECHARGE}, BALANCE: ${completedPractices.BALANCE}, RECOVERY: ${completedPractices.RECOVERY}\`
+- **Rainbow Progress:** \`${rainbowProgress}/7 Days\`
+- **User Agent:** \`${navigator.userAgent}\`
+- **Screen Resolution:** \`${window.innerWidth}x${window.innerHeight}\`
+- **Timestamp:** \`${new Date().toISOString()}\``;
+            };
+
+            const handleOpenGithubWebIssue = (customTitle, customBody, customLabels) => {
+                const cleanRepo = githubRepo.trim().replace(/^https:\/\/github\.com\//, '').replace(/\/$/, '');
+                const title = encodeURIComponent(customTitle || issueTitle || `[${issueType.toUpperCase()}] Feedback from Savituh App`);
+                let bodyText = (customBody || issueBody || feedbackText || 'No description provided.').trim();
+                
+                if (includeDiagnostics) {
+                    bodyText += getDiagnosticMarkdown();
+                }
+
+                const labels = encodeURIComponent(customLabels || issueType);
+                const githubUrl = `https://github.com/${cleanRepo}/issues/new?title=${title}&body=${encodeURIComponent(bodyText)}&labels=${labels}`;
+                
+                window.open(githubUrl, '_blank');
+                audioEngine.triggerHaptic('click');
+            };
+
+            const handleCreateGithubIssueAPI = async () => {
+                if (!githubToken.trim()) {
+                    setGithubStatus({ type: 'error', message: 'GitHub Token required for direct API creation. Use Web Form link or paste a token below.' });
+                    return;
+                }
+                const cleanRepo = githubRepo.trim().replace(/^https:\/\/github\.com\//, '').replace(/\/$/, '');
+                if (!cleanRepo.includes('/')) {
+                    setGithubStatus({ type: 'error', message: 'Invalid repository format. Must be "owner/repo"' });
+                    return;
+                }
+
+                setIsSubmittingGithub(true);
+                setGithubStatus(null);
+
+                let bodyText = issueBody.trim() || feedbackText.trim() || 'No description provided.';
+                if (includeDiagnostics) {
+                    bodyText += getDiagnosticMarkdown();
+                }
+
+                const labelMap = {
+                    bug: ['bug', 'triage'],
+                    feature: ['enhancement'],
+                    bolt: ['bio-feedback', 'bolt-test'],
+                    ux: ['design', 'ui/ux']
+                };
+
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${cleanRepo}/issues`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/vnd.github+json',
+                            'Authorization': `Bearer ${githubToken.trim()}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            title: issueTitle.trim() || `[${issueType.toUpperCase()}] Savituh Feedback`,
+                            body: bodyText,
+                            labels: labelMap[issueType] || ['feedback']
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.message || `HTTP ${response.status}`);
+                    }
+
+                    const issueData = await response.json();
+                    setGithubStatus({ 
+                        type: 'success', 
+                        message: `Issue #${issueData.number} created successfully!`,
+                        url: issueData.html_url 
+                    });
+                    setIssueTitle('');
+                    setIssueBody('');
+                    audioEngine.triggerHaptic('phase');
+                } catch (err) {
+                    setGithubStatus({ type: 'error', message: `Failed to create issue: ${err.message}` });
+                } finally {
+                    setIsSubmittingGithub(false);
+                }
+            };
+
+            const handleCopyLink = () => {
+                const url = window.location.href;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url);
+                } else {
+                    const dummy = document.createElement("input");
+                    document.body.appendChild(dummy);
+                    dummy.value = url;
+                    dummy.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(dummy);
+                }
+                setCopySuccess(true);
+                setTimeout(() => setCopySuccess(false), 2500);
+            };
+
+            const handleAddFeedback = () => {
+                if (feedbackText.trim()) {
+                    const newEntry = {
+                        id: Date.now(),
+                        text: feedbackText.trim(),
+                        date: new Date().toLocaleString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })
+                    };
+                    setFeedbackLog((prev) => [newEntry, ...prev]);
+                    setFeedbackSubmitted(true);
+                    setFeedbackText('');
+                    audioEngine.triggerHaptic('click');
+                    setTimeout(() => setFeedbackSubmitted(false), 2500);
+                }
+            };
+
+            const handleDeleteFeedback = (id) => {
+                setFeedbackLog((prev) => prev.filter((item) => item.id !== id));
+                audioEngine.triggerHaptic('click');
+            };
+
+            const handleExportFeedbackLog = () => {
+                if (feedbackLog.length === 0) return;
+                const formattedText = feedbackLog
+                    .map((f, i) => `#${feedbackLog.length - i} [${f.date}]\n${f.text}`)
+                    .join('\n\n------------------------------\n\n');
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(formattedText);
+                } else {
+                    const dummy = document.createElement("textarea");
+                    document.body.appendChild(dummy);
+                    dummy.value = formattedText;
+                    dummy.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(dummy);
+                }
+                setCopySuccess(true);
+                setTimeout(() => setCopySuccess(false), 2500);
+            };
+
+            const handleResetData = () => {
+                localStorage.clear();
+                setCompletedPractices({ RECHARGE: false, BALANCE: false, RECOVERY: false });
+                setRainbowProgress(1);
+                setBoltHistory([]);
+                setFeedbackLog([]);
+                setBoltState('IDLE');
+                setBoltScore(null);
+                audioEngine.triggerHaptic('phase');
+            };
+
+            return (
+                <div className="flex flex-col flex-1 justify-between gap-3">
+                    {/* Header */}
+                    <header className="flex items-center justify-between py-2 border-b border-neutral-900 px-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-savituhOrange animate-pulse"></div>
+                            <h1 className="font-extrabold text-base tracking-widest text-white">SAVITUH</h1>
+                            <span className="text-[9px] bg-savituhOrange/20 text-savituhOrange border border-savituhOrange/30 px-1.5 py-0.5 rounded font-mono">
+                                SMART BREATH
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => setShowGuideModal(true)}
+                                className="text-xs bg-savituhOrange/20 hover:bg-savituhOrange/30 border border-savituhOrange/40 text-orange-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all"
+                                title="How Savituh & Rings Work"
+                            >
+                                <i className="fa-solid fa-circle-question text-savituhOrange"></i>
+                                <span className="font-semibold text-[11px]">How It Works</span>
+                            </button>
+                            <button
+                                onClick={() => setShowFeedbackModal(true)}
+                                className="text-xs bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-200 px-2 py-1 rounded-lg flex items-center gap-1.5 transition-all"
+                                title="Tester Tools & GitHub Integration"
+                            >
+                                <i className="fa-brands fa-github text-savituhOrange"></i>
+                                <span className="font-semibold text-[11px]">Tools</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Hardware Circle Visualizer */}
+                    <SavituhDeviceSim 
+                        sessionState={sessionState}
+                        boltState={boltState}
+                        boltScore={boltScore}
+                        completedPractices={completedPractices}
+                        rainbowProgress={rainbowProgress}
+                        onHapticClick={handleHapticButtonClick}
+                    />
+
+                    {/* Mode Navigation Tabs */}
+                    <div className="grid grid-cols-4 gap-1.5 bg-neutral-900/80 p-1.5 rounded-2xl border border-neutral-800">
+                        {[
+                            { id: 'RECHARGE', label: 'Recharge', icon: 'fa-bolt', desc: 'Forceful Inhale & Exhale' },
+                            { id: 'BALANCE', label: 'Balance', icon: 'fa-scale-balanced', desc: 'Box 4-4-4-4' },
+                            { id: 'RECOVERY', label: 'Recovery', icon: 'fa-wind', desc: 'Straw Exhale' },
+                            { id: 'BOLT', label: 'BOLT Test', icon: 'fa-heart-pulse', desc: 'CO2 Tolerance' },
+                        ].map((mode) => {
+                            const isSelected = activePractice === mode.id;
+                            const isDone = completedPractices[mode.id];
+                            return (
+                                <button
+                                    key={mode.id}
+                                    onClick={() => {
+                                        if (sessionState.isExecuting) handleHapticButtonClick();
+                                        setActivePractice(mode.id);
+                                        audioEngine.triggerHaptic('click');
+                                    }}
+                                    className={`relative py-2.5 px-1 rounded-xl flex flex-col items-center justify-center transition-all ${
+                                        isSelected 
+                                            ? 'bg-savituhOrange text-white shadow-lg glow-orange font-bold' 
+                                            : 'bg-savituhCard/60 text-neutral-400 hover:text-white hover:bg-neutral-800/80'
+                                    }`}
+                                >
+                                    {isDone && !isSelected && (
+                                        <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400"></div>
+                                    )}
+                                    <i className={`fa-solid ${mode.icon} text-xs mb-1 ${isSelected ? 'text-white' : 'text-savituhOrange'}`}></i>
+                                    <span className="text-[11px] font-bold tracking-tight leading-none">{mode.label}</span>
+                                    <span className={`text-[8px] mt-1 font-mono ${isSelected ? 'text-orange-100' : 'text-neutral-500'}`}>{mode.desc}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Session Settings Bar */}
+                    <div className="bg-savituhCard border border-neutral-800 rounded-2xl p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-neutral-400 font-medium">Duration:</span>
+                            <div className="flex gap-1">
+                                {[1, 3, 5].map((mins) => (
+                                    <button
+                                        key={mins}
+                                        onClick={() => { setDurationMinutes(mins); audioEngine.triggerHaptic('click'); }}
+                                        disabled={sessionState.isExecuting || activePractice === 'BOLT'}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                                            durationMinutes === mins && activePractice !== 'BOLT'
+                                                ? 'bg-savituhOrange text-white'
+                                                : 'bg-neutral-800 text-neutral-400 hover:text-white disabled:opacity-40'
+                                        }`}
+                                    >
+                                        {mins}m
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => { setSoundEnabled(!soundEnabled); audioEngine.triggerHaptic('click'); }}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                    soundEnabled ? 'bg-orange-500/20 text-savituhOrange border border-orange-500/30' : 'bg-neutral-800 text-neutral-500'
+                                }`}
+                                title="Toggle Audio Feedback"
+                            >
+                                <i className={`fa-solid ${soundEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}`}></i>
+                            </button>
+
+                            <button
+                                onClick={() => { setHapticEnabled(!hapticEnabled); audioEngine.triggerHaptic('click'); }}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                    hapticEnabled ? 'bg-orange-500/20 text-savituhOrange border border-orange-500/30' : 'bg-neutral-800 text-neutral-500'
+                                }`}
+                                title="Toggle Haptic Feedback"
+                            >
+                                <i className="fa-solid fa-mobile-screen-button"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* How It Works & Rings Guide Modal */}
+                    {showGuideModal && (
+                        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+                            <div className="bg-savituhCard border border-neutral-700 rounded-2xl p-5 max-w-md w-full space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                                <button
+                                    onClick={() => setShowGuideModal(false)}
+                                    className="absolute top-4 right-4 text-neutral-400 hover:text-white"
+                                >
+                                    <i className="fa-solid fa-xmark text-lg"></i>
+                                </button>
+
+                                <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
+                                    <div className="w-8 h-8 rounded-full bg-savituhOrange/20 border border-savituhOrange/40 flex items-center justify-center text-savituhOrange">
+                                        <i className="fa-solid fa-dharmachakra text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-extrabold text-base text-white">Savituh Concept & Guide</h3>
+                                        <p className="text-[10px] text-neutral-400">Understanding the Smart Rings & Rhythms</p>
+                                    </div>
+                                </div>
+
+                                {/* Guide Tabs */}
+                                <div className="grid grid-cols-4 gap-1 bg-black/60 p-1 rounded-xl border border-neutral-800 text-[10px] font-bold">
+                                    {[
+                                        { id: 'rings', label: 'Daily Rings', icon: 'fa-circle-notch' },
+                                        { id: 'streak', label: '7-Day Streak', icon: 'fa-rainbow' },
+                                        { id: 'concept', label: 'Device', icon: 'fa-microchip' },
+                                        { id: 'bolt', label: 'BOLT Test', icon: 'fa-heart-pulse' }
+                                    ].map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setGuideTab(tab.id)}
+                                            className={`py-1.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+                                                guideTab === tab.id ? 'bg-savituhOrange text-white shadow' : 'text-neutral-400 hover:text-white'
+                                            }`}
+                                        >
+                                            <i className={`fa-solid ${tab.icon} text-xs`}></i>
+                                            <span>{tab.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Tab Content */}
+                                {guideTab === 'rings' && (
+                                    <div className="space-y-3 text-xs text-neutral-300">
+                                        <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-xl space-y-2">
+                                            <span className="font-bold text-white text-sm block flex items-center gap-2">
+                                                <i className="fa-solid fa-circle-notch text-savituhOrange"></i>
+                                                What are the 3 Concentric Rings?
+                                            </span>
+                                            <p className="text-[11px] leading-relaxed text-neutral-400">
+                                                Each day, your goal is to complete all 3 targeted breathing protocols. Completing a practice lights up its corresponding ring on the central device visualizer:
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="bg-neutral-900/80 border border-neutral-800 p-2.5 rounded-xl flex items-start gap-3">
+                                                <div className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-mono font-bold text-white shrink-0 mt-0.5">1</div>
+                                                <div>
+                                                    <span className="font-bold text-white block">Inner Ring — Recharge Practice</span>
+                                                    <p className="text-[11px] text-neutral-400">Rapid dynamic breaths + brief stillness to clear brain fog and elevate mental alertness.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-neutral-900/80 border border-neutral-800 p-2.5 rounded-xl flex items-start gap-3">
+                                                <div className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-mono font-bold text-white shrink-0 mt-0.5">2</div>
+                                                <div>
+                                                    <span className="font-bold text-white block">Middle Ring — Balance Practice</span>
+                                                    <p className="text-[11px] text-neutral-400">Box breathing rhythm (4s Inhale, 4s Hold, 4s Exhale, 4s Hold) to stabilize heart rate and stress.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-neutral-900/80 border border-neutral-800 p-2.5 rounded-xl flex items-start gap-3">
+                                                <div className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-mono font-bold text-white shrink-0 mt-0.5">3</div>
+                                                <div>
+                                                    <span className="font-bold text-white block">Outer Ring — Recovery Practice</span>
+                                                    <p className="text-[11px] text-neutral-400">Slow straw exhale (4s Inhale, 8s Exhale) to activate parasympathetic calming neural pathways.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {guideTab === 'streak' && (
+                                    <div className="space-y-3 text-xs text-neutral-300">
+                                        <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-xl space-y-2">
+                                            <span className="font-bold text-white text-sm block flex items-center gap-2">
+                                                <i className="fa-solid fa-rainbow text-amber-400"></i>
+                                                The 7-Day Rainbow Perimeter Ring
+                                            </span>
+                                            <p className="text-[11px] leading-relaxed text-neutral-400">
+                                                The outermost ring is divided into 7 distinct colored segments representing Monday through Sunday (Red, Orange, Yellow, Green, Blue, Indigo, Violet).
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-neutral-900/80 border border-neutral-800 p-3 rounded-xl space-y-2">
+                                            <span className="font-bold text-white block">How to Advance the Rainbow:</span>
+                                            <ul className="list-disc list-inside text-[11px] text-neutral-300 space-y-1.5">
+                                                <li>Complete all <strong className="text-white">3 daily practices</strong> (Recharge + Balance + Recovery) in a single day.</li>
+                                                <li>Once all 3 inner rings are filled, today's segment on the rainbow ring turns glowing color!</li>
+                                                <li>Repeat daily to complete all 7 segments for a full weekly streak award.</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {guideTab === 'concept' && (
+                                    <div className="space-y-3 text-xs text-neutral-300">
+                                        <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-xl space-y-2">
+                                            <span className="font-bold text-white text-sm block flex items-center gap-2">
+                                                <i className="fa-solid fa-microchip text-savituhOrange"></i>
+                                                Savituh Hardware Device Concept
+                                            </span>
+                                            <p className="text-[11px] leading-relaxed text-neutral-400">
+                                                Savituh is a tactile bio-haptic breathing companion designed to anchor your mind without staring at screen text.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="bg-neutral-900/80 border border-neutral-800 p-2.5 rounded-xl space-y-1">
+                                                <span className="font-bold text-white text-[11px] flex items-center gap-1.5">
+                                                    <i className="fa-solid fa-hand text-savituhOrange"></i> Central Haptic Button
+                                                </span>
+                                                <p className="text-[11px] text-neutral-400">Tap the center pad to start or pause breathwork. Recesses with tactile vibration feedback for eyes-free practice.</p>
+                                            </div>
+
+                                            <div className="bg-neutral-900/80 border border-neutral-800 p-2.5 rounded-xl space-y-1">
+                                                <span className="font-bold text-white text-[11px] flex items-center gap-1.5">
+                                                    <i className="fa-solid fa-wave-square text-savituhOrange"></i> Acoustic Pink Noise Engine
+                                                </span>
+                                                <p className="text-[11px] text-neutral-400">Generates organic frequency sweeps that guide inhalation and exhalation speeds naturally.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {guideTab === 'bolt' && (
+                                    <div className="space-y-3 text-xs text-neutral-300">
+                                        <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-xl space-y-2">
+                                            <span className="font-bold text-white text-sm block flex items-center gap-2">
+                                                <i className="fa-solid fa-heart-pulse text-red-500"></i>
+                                                BOLT (Body Oxygen Level Test)
+                                            </span>
+                                            <p className="text-[11px] leading-relaxed text-neutral-400">
+                                                Measures your functional breathing baseline and CO2 tolerance:
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-neutral-900/80 border border-neutral-800 p-3 rounded-xl space-y-2 text-[11px]">
+                                            <span className="font-bold text-white block">How to Take the BOLT Test:</span>
+                                            <ol className="list-decimal list-inside text-neutral-300 space-y-1">
+                                                <li>Take a normal, gentle breath in through your nose, then a normal breath out.</li>
+                                                <li>Pinch your nose and tap the TAP button to start timer.</li>
+                                                <li>Hold until you feel the <strong className="text-white">first definite urge</strong> to breathe (or throat contraction).</li>
+                                                <li>Tap the TAP button again to stop.</li>
+                                            </ol>
+                                            <div className="pt-2 text-[10px] text-neutral-400 font-mono">
+                                                • &lt;10s: Poor • 10-20s: Average • 20-40s: Good • 40s+: Elite
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => setShowGuideModal(false)}
+                                    className="w-full py-2.5 bg-savituhOrange hover:bg-orange-600 font-bold text-white rounded-xl text-xs transition-all shadow-md"
+                                >
+                                    Got It — Start Breathing
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Feedback & GitHub Modal */}
+                    {showFeedbackModal && (
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-savituhCard border border-neutral-700 rounded-2xl p-5 max-w-md w-full space-y-4 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+                                <button
+                                    onClick={() => setShowFeedbackModal(false)}
+                                    className="absolute top-4 right-4 text-neutral-400 hover:text-white"
+                                >
+                                    <i className="fa-solid fa-xmark text-base"></i>
+                                </button>
+
+                                <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
+                                    <i className="fa-brands fa-github text-savituhOrange text-xl"></i>
+                                    <div>
+                                        <h3 className="font-bold text-base text-white">GitHub & Testing Suite</h3>
+                                        <p className="text-[10px] text-neutral-400">Connect, report issues, or test features</p>
+                                    </div>
+                                </div>
+
+                                {/* Modal Navigation Tabs */}
+                                <div className="grid grid-cols-3 gap-1 bg-black/60 p-1 rounded-xl border border-neutral-800 text-xs font-semibold">
+                                    <button
+                                        onClick={() => setActiveModalTab('github')}
+                                        className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                                            activeModalTab === 'github' ? 'bg-savituhOrange text-white' : 'text-neutral-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <i className="fa-solid fa-circle-dot text-[10px]"></i>
+                                        <span>GitHub Issues</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveModalTab('feedback')}
+                                        className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                                            activeModalTab === 'feedback' ? 'bg-savituhOrange text-white' : 'text-neutral-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <i className="fa-solid fa-list-check text-[10px]"></i>
+                                        <span>Local Logs</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveModalTab('share')}
+                                        className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                                            activeModalTab === 'share' ? 'bg-savituhOrange text-white' : 'text-neutral-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <i className="fa-solid fa-share-nodes text-[10px]"></i>
+                                        <span>Share Link</span>
+                                    </button>
+                                </div>
+
+                                {activeModalTab === 'github' && (
+                                    <div className="space-y-3.5 text-xs">
+                                        {/* Repo Target Config */}
+                                        <div className="bg-neutral-900/90 border border-neutral-800 p-3 rounded-xl space-y-2">
+                                            <label className="text-[11px] font-bold text-neutral-300 flex items-center justify-between">
+                                                <span>Target GitHub Repository</span>
+                                                <span className="text-[9px] font-mono text-neutral-500">owner/repository</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={githubRepo}
+                                                onChange={(e) => setGithubRepo(e.target.value)}
+                                                placeholder="owner/savituh-breathing-app"
+                                                className="w-full bg-black/70 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] font-mono focus:outline-none focus:border-savituhOrange"
+                                            />
+                                        </div>
+
+                                        {/* Issue Creator Form */}
+                                        <div className="bg-neutral-900/90 border border-neutral-800 p-3 rounded-xl space-y-2.5">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-bold text-neutral-200">New GitHub Issue</span>
+                                                <div className="flex gap-1 text-[10px]">
+                                                    {[
+                                                        { id: 'bug', label: 'Bug' },
+                                                        { id: 'feature', label: 'Feature' },
+                                                        { id: 'bolt', label: 'BOLT' },
+                                                        { id: 'ux', label: 'UI/UX' }
+                                                    ].map((t) => (
+                                                        <button
+                                                            key={t.id}
+                                                            type="button"
+                                                            onClick={() => setIssueType(t.id)}
+                                                            className={`px-2 py-0.5 rounded border transition-all ${
+                                                                issueType === t.id
+                                                                    ? 'bg-savituhOrange/20 border-savituhOrange text-orange-300 font-bold'
+                                                                    : 'border-neutral-800 text-neutral-400 hover:text-white'
+                                                            }`}
+                                                        >
+                                                            {t.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <input
+                                                type="text"
+                                                value={issueTitle}
+                                                onChange={(e) => setIssueTitle(e.target.value)}
+                                                placeholder="Brief Issue Title (e.g., BOLT timer pause bug on mobile)..."
+                                                className="w-full bg-black/70 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] focus:outline-none focus:border-savituhOrange"
+                                            />
+
+                                            <textarea
+                                                value={issueBody}
+                                                onChange={(e) => setIssueBody(e.target.value)}
+                                                placeholder="Describe the bug, observation, or feature request..."
+                                                className="w-full h-20 bg-black/70 border border-neutral-700 rounded-lg p-2.5 text-white text-[11px] focus:outline-none focus:border-savituhOrange resize-none"
+                                            />
+
+                                            <label className="flex items-center gap-2 cursor-pointer text-[11px] text-neutral-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={includeDiagnostics}
+                                                    onChange={(e) => setIncludeDiagnostics(e.target.checked)}
+                                                    className="accent-orange-500 rounded"
+                                                />
+                                                <span>Attach System Diagnostics (BOLT score, user agent, viewport)</span>
+                                            </label>
+
+                                            {githubStatus && (
+                                                <div className={`p-2 rounded-lg text-[11px] font-medium ${
+                                                    githubStatus.type === 'success' ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/40' : 'bg-red-950/60 text-red-300 border border-red-500/40'
+                                                }`}>
+                                                    {githubStatus.message}
+                                                    {githubStatus.url && (
+                                                        <a href={githubStatus.url} target="_blank" rel="noreferrer" className="block underline mt-1 text-emerald-400 font-bold">
+                                                            Open Created Issue ↗
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="grid grid-cols-2 gap-2 pt-1">
+                                                <button
+                                                    onClick={() => handleOpenGithubWebIssue()}
+                                                    className="w-full py-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 font-bold text-white rounded-lg text-[11px] transition-all flex items-center justify-center gap-1.5"
+                                                >
+                                                    <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                                    Open GitHub Web Form
+                                                </button>
+                                                <button
+                                                    onClick={handleCreateGithubIssueAPI}
+                                                    disabled={isSubmittingGithub}
+                                                    className="w-full py-2 bg-savituhOrange hover:bg-orange-600 font-bold text-white rounded-lg text-[11px] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                                >
+                                                    <i className="fa-brands fa-github text-[11px]"></i>
+                                                    {isSubmittingGithub ? 'Creating...' : 'Submit via GitHub API'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Optional GitHub Token */}
+                                        <details className="bg-black/40 border border-neutral-800 rounded-xl p-2.5 text-[11px] text-neutral-400">
+                                            <summary className="font-semibold text-neutral-300 cursor-pointer flex items-center justify-between">
+                                                <span>🔑 GitHub Personal Access Token (Optional for API)</span>
+                                                <i className="fa-solid fa-chevron-down text-[9px]"></i>
+                                            </summary>
+                                            <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-800">
+                                                <p className="text-[10px]">
+                                                    Needed only if you want 1-click issue creation without redirected web forms. Needs <code className="text-orange-400">repo</code> or <code className="text-orange-400">public_repo</code> scope.
+                                                </p>
+                                                <input
+                                                    type="password"
+                                                    value={githubToken}
+                                                    onChange={(e) => setGithubToken(e.target.value)}
+                                                    placeholder="ghp_xxxxxxxxxxxxxxxxx"
+                                                    className="w-full bg-black/70 border border-neutral-700 rounded-lg px-2.5 py-1 text-white text-[11px] font-mono focus:outline-none focus:border-savituhOrange"
+                                                />
+                                            </div>
+                                        </details>
+                                    </div>
+                                )}
+
+                                {activeModalTab === 'feedback' && (
+                                    <div className="space-y-3 text-xs">
+                                        <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-xl space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-bold text-neutral-300 block">Log Tester Feedback</span>
+                                                <span className="text-[10px] font-mono text-savituhOrange bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded">
+                                                    {feedbackLog.length} {feedbackLog.length === 1 ? 'entry' : 'entries'}
+                                                </span>
+                                            </div>
+
+                                            {feedbackSubmitted && (
+                                                <div className="p-2 bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 rounded-lg text-center font-medium text-[11px] animate-fadeIn">
+                                                    <i className="fa-solid fa-circle-check mr-1"></i> Feedback logged locally!
+                                                </div>
+                                            )}
+
+                                            <textarea
+                                                value={feedbackText}
+                                                onChange={(e) => setFeedbackText(e.target.value)}
+                                                placeholder="How does the haptic breathing rhythm feel? Share any bugs or suggestions..."
+                                                className="w-full h-20 bg-black/60 border border-neutral-700 rounded-lg p-2 text-white text-[11px] focus:outline-none focus:border-savituhOrange resize-none"
+                                            />
+                                            
+                                            <button
+                                                onClick={handleAddFeedback}
+                                                disabled={!feedbackText.trim()}
+                                                className="w-full py-2 bg-savituhOrange hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-savituhOrange font-bold text-white rounded-lg text-[11px] transition-all flex items-center justify-center gap-1.5"
+                                            >
+                                                <i className="fa-solid fa-pen-to-square text-xs"></i>
+                                                Save Local Feedback Entry
+                                            </button>
+
+                                            {/* Saved Feedback Log Section */}
+                                            {feedbackLog.length > 0 && (
+                                                <div className="pt-2 border-t border-neutral-800 space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                                                            Saved Local Log
+                                                        </span>
+                                                        <button
+                                                            onClick={handleExportFeedbackLog}
+                                                            className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-1"
+                                                        >
+                                                            <i className="fa-solid fa-copy text-[9px]"></i>
+                                                            Copy All Logs
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                                                        {feedbackLog.map((item) => (
+                                                            <div key={item.id} className="p-2 bg-black/70 border border-neutral-800 rounded-lg space-y-1 relative group">
+                                                                <div className="flex items-center justify-between text-[9px] text-neutral-500 font-mono">
+                                                                    <span>{item.date}</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <button
+                                                                            onClick={() => handleOpenGithubWebIssue(`[TESTER LOG] ${item.text.slice(0, 30)}...`, item.text, 'feedback')}
+                                                                            className="text-savituhOrange hover:underline text-[9px] flex items-center gap-1"
+                                                                            title="Convert to GitHub Issue"
+                                                                        >
+                                                                            <i className="fa-brands fa-github"></i>
+                                                                            <span>Issue</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDeleteFeedback(item.id)}
+                                                                            className="text-neutral-500 hover:text-red-400 transition-colors px-1"
+                                                                            title="Delete Entry"
+                                                                        >
+                                                                            <i className="fa-solid fa-trash-can"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[11px] text-neutral-200 whitespace-pre-wrap break-words leading-relaxed">
+                                                                    {item.text}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeModalTab === 'share' && (
+                                    <div className="space-y-3 text-xs">
+                                        <div className="bg-neutral-900 border border-neutral-800 p-3.5 rounded-xl space-y-3">
+                                            <span className="font-bold text-neutral-200 block">Share Web App Link</span>
+                                            <p className="text-neutral-400 text-[11px] leading-relaxed">
+                                                Copy this link to share the interactive app with test users, team members, or stakeholders across mobile & desktop devices:
+                                            </p>
+                                            <button
+                                                onClick={handleCopyLink}
+                                                className="w-full py-2.5 px-3 bg-savituhOrange hover:bg-orange-600 font-bold text-white rounded-lg flex items-center justify-center gap-2 transition-all shadow-md"
+                                            >
+                                                <i className={`fa-solid ${copySuccess ? 'fa-check' : 'fa-copy'}`}></i>
+                                                {copySuccess ? 'Link Copied to Clipboard!' : 'Copy Shareable App Link'}
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-1">
+                                            <span className="text-neutral-400 text-[11px]">Reset stored test data:</span>
+                                            <button
+                                                onClick={handleResetData}
+                                                className="px-2.5 py-1 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-300 rounded-lg text-[10px] font-mono transition-all"
+                                            >
+                                                Clear LocalStorage
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer */}
+                    <footer className="flex items-center justify-between text-[10px] text-neutral-500 pt-1 border-t border-neutral-900 px-1 font-mono">
+                        <div title="Complete Recharge, Balance, and Recovery to fill today's rings">
+                            Daily Rings: <span className="text-white font-bold">{Object.values(completedPractices).filter(Boolean).length}/3</span> Done
+                        </div>
+                        <div title="Full daily completion advances your 7-day rainbow streak">
+                            Weekly Streak: <span className="text-savituhOrange font-bold">{rainbowProgress}/7 Days</span>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        const rootElement = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(<App />);
+    </script>
+</body>
+</html>
